@@ -1,0 +1,2 @@
+这是一份用于 Playwright 浏览器级上传验证的测试文件。
+它用于覆盖 upload-policy -> upload-local -> confirm -> ingestions -> parse-job 展示链路。

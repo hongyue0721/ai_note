@@ -1,0 +1,18 @@
+{
+  "name": "note-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:student": "playwright test tests/e2e/student-auth.spec.ts",
+    "test:e2e:student-upload": "playwright test tests/e2e/student-upload.spec.ts",
+    "test:e2e:student-search": "playwright test tests/e2e/student-search.spec.ts",
+    "test:e2e:student-solve": "playwright test tests/e2e/student-solve.spec.ts",
+    "test:e2e:admin": "playwright test tests/e2e/admin-auth.spec.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}
