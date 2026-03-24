@@ -58,7 +58,7 @@ export type UploadPreview = {
   review_reason?: string | null
 }
 
-export type WorkspaceTab = 'upload' | 'ask' | 'notes' | 'note-detail'
+export type WorkspaceTab = 'upload' | 'ask' | 'notes' | 'note-detail' | 'note-edit'
 export type UploadStep = 'form' | 'confirm'
 
 export type AskAnalysisState = {
