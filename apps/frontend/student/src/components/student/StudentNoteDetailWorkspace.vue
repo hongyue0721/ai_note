@@ -5,19 +5,12 @@ import type { NoteItem, RelatedNoteItem } from '../../types'
 defineProps({
   note: { type: Object as PropType<NoteItem | null>, required: true },
   relatedNotes: { type: Array as PropType<RelatedNoteItem[]>, required: true },
-  tagDraft: { type: String, required: true },
-  savingNoteTags: { type: Boolean, required: true },
-  deletingNote: { type: Boolean, required: true },
   previewKind: { type: String as PropType<'text' | 'image' | 'pdf' | 'file'>, required: true },
   resolveAssetUrl: { type: Function as PropType<(url: string | null | undefined) => string>, required: true },
   onDownloadOriginalFile: { type: Function as PropType<() => void>, required: true },
   onBack: { type: Function as PropType<() => void>, required: true },
+  onEdit: { type: Function as PropType<() => void>, required: true },
   onOpenRelatedNote: { type: Function as PropType<(noteId: string) => void>, required: true },
-  onUpdateTagDraft: { type: Function as PropType<(value: string) => void>, required: true },
-  onAddTag: { type: Function as PropType<() => void>, required: true },
-  onRemoveTag: { type: Function as PropType<(tagName: string) => void>, required: true },
-  onSaveTags: { type: Function as PropType<() => void>, required: true },
-  onDeleteNote: { type: Function as PropType<() => void>, required: true },
 })
 </script>
 
@@ -32,22 +25,15 @@ defineProps({
           <strong>{{ note.title || '未命名笔记' }}</strong>
           <span>{{ note.category }} · {{ note.subject }} · {{ note.parse_status }}</span>
         </div>
-        <button class="danger-btn" :disabled="deletingNote" @click="onDeleteNote">{{ deletingNote ? '删除中...' : '删除笔记' }}</button>
+        <button class="tab-btn" @click="onEdit">编辑笔记</button>
       </div>
 
-      <div class="detail-box note-tags-editor">
-        <strong>标签编辑</strong>
-        <div v-if="note.tags.length" class="note-tag-row editable-note-tag-row">
-          <span v-for="tag in note.tags" :key="`${note.id}-${tag.name}`" class="pill tag-pill editable-tag-pill">
-            {{ tag.name }}
-            <button class="mini-danger-btn" @click="onRemoveTag(tag.name)">×</button>
-          </span>
+      <div class="detail-box">
+        <strong>标签</strong>
+        <div v-if="note.tags.length" class="note-tag-row">
+          <span v-for="tag in note.tags" :key="`${note.id}-${tag.name}`" class="pill tag-pill note-static-tag">{{ tag.name }}</span>
         </div>
-        <div class="tag-add-row compact-tag-editor-row">
-          <input :value="tagDraft" type="text" placeholder="新增标签，如：数学 / 错题" @input="onUpdateTagDraft(($event.target as HTMLInputElement).value)" />
-          <button class="tab-btn" @click="onAddTag">添加标签</button>
-          <button class="primary-btn" :disabled="savingNoteTags" @click="onSaveTags">{{ savingNoteTags ? '保存中...' : '保存标签' }}</button>
-        </div>
+        <p v-else>暂无标签。</p>
       </div>
 
       <div v-if="previewKind === 'image' && note.file_url" class="note-preview-card"><img :src="resolveAssetUrl(note.file_url)" alt="note image preview" /></div>

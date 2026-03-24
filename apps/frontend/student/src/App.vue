@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import StudentAskWorkspace from './components/student/StudentAskWorkspace.vue'
 import StudentAuthCard from './components/student/StudentAuthCard.vue'
+import StudentNoteEditWorkspace from './components/student/StudentNoteEditWorkspace.vue'
 import StudentNoteDetailWorkspace from './components/student/StudentNoteDetailWorkspace.vue'
 import StudentNotesWorkspace from './components/student/StudentNotesWorkspace.vue'
 import StudentUploadWorkspace from './components/student/StudentUploadWorkspace.vue'
@@ -668,6 +669,14 @@ function returnToNotes() {
   activeTab.value = 'notes'
 }
 
+function openNoteEdit() {
+  activeTab.value = 'note-edit'
+}
+
+function returnToNoteDetail() {
+  activeTab.value = 'note-detail'
+}
+
 function openRelatedNote(noteId: string) {
   const target = notes.value.find((item) => item.id === noteId)
   if (target) openNoteDetail(target)
@@ -694,7 +703,9 @@ onBeforeUnmount(() => {
 
         <StudentNotesWorkspace v-else-if="activeTab === 'notes'" :subject-nodes="subjectNodes" :selected-subject-filter="selectedSubjectFilter" :selected-content-type-filter="selectedContentTypeFilter" :selected-knowledge-tag-filters="selectedKnowledgeTagFilters" :content-type-nodes="contentTypeNodes" :visible-tag-nodes="visibleTagNodes" :notes-search-state="notesSearchState" :filtered-notes="filteredNotes" :notes-page-state="notesPageState" :selected-note="selectedNote" :on-apply-subject-filter="applySubjectFilter" :on-apply-content-type-filter="applyContentTypeFilter" :on-toggle-knowledge-tag-filter="toggleKnowledgeTagFilter" :on-clear-tag-filter="clearTagFilter" :on-toggle-search="toggleNotesSearch" :on-update-search-query="updateSearchQuery" :on-pick-search-result="pickSearchResult" :on-select-note="openNoteDetail" :on-prev-page="prevNotesPage" :on-next-page="nextNotesPage" />
 
-        <StudentNoteDetailWorkspace v-else :note="selectedNote" :related-notes="relatedNotes" :tag-draft="noteTagDraft" :saving-note-tags="ui.savingNoteTags" :deleting-note="ui.deletingNoteId === selectedNote?.id" :preview-kind="selectedNotePreviewKind" :resolve-asset-url="resolveAssetUrl" :on-download-original-file="downloadSelectedNoteOriginalFile" :on-back="returnToNotes" :on-open-related-note="openRelatedNote" :on-update-tag-draft="(value) => noteTagDraft = value" :on-add-tag="addNoteDetailTag" :on-remove-tag="removeNoteDetailTag" :on-save-tags="saveSelectedNoteTags" :on-delete-note="deleteSelectedNote" />
+        <StudentNoteDetailWorkspace v-else-if="activeTab === 'note-detail'" :note="selectedNote" :related-notes="relatedNotes" :preview-kind="selectedNotePreviewKind" :resolve-asset-url="resolveAssetUrl" :on-download-original-file="downloadSelectedNoteOriginalFile" :on-back="returnToNotes" :on-edit="openNoteEdit" :on-open-related-note="openRelatedNote" />
+
+        <StudentNoteEditWorkspace v-else :note="selectedNote" :tag-draft="noteTagDraft" :saving-note-tags="ui.savingNoteTags" :deleting-note="ui.deletingNoteId === selectedNote?.id" :on-back="returnToNoteDetail" :on-update-tag-draft="(value) => noteTagDraft = value" :on-add-tag="addNoteDetailTag" :on-remove-tag="removeNoteDetailTag" :on-save-tags="saveSelectedNoteTags" :on-delete-note="deleteSelectedNote" />
       </main>
     </template>
   </div>
