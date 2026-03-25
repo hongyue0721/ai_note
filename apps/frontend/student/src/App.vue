@@ -521,7 +521,8 @@ async function saveQuestionAsNote() {
     })
     await refreshWorkspace()
     selectedNote.value = result.data
-    activeTab.value = 'notes'
+    resetQuestionComposer()
+    activeTab.value = 'ask'
   } catch (error) {
     ui.questionError = error instanceof Error ? error.message : '加入笔记失败'
   } finally {
