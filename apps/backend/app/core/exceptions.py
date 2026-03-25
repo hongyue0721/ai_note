@@ -24,3 +24,8 @@ class NotFoundException(AppException):
 class ConflictException(AppException):
     def __init__(self, message: str = "state conflict") -> None:
         super().__init__(code=4090, message=message, status_code=409)
+
+
+class ServiceUnavailableException(AppException):
+    def __init__(self, message: str = "service unavailable") -> None:
+        super().__init__(code=5030, message=message, status_code=503)
