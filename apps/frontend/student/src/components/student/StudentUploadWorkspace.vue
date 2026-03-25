@@ -26,8 +26,20 @@ const props = defineProps({
   uploadButtonDisabled: { type: Boolean, required: true },
 })
 
+function extractDroppedFile(event: DragEvent) {
+  const items = event.dataTransfer?.items
+  if (items?.length) {
+    for (const item of Array.from(items)) {
+      if (item.kind !== 'file') continue
+      const file = item.getAsFile()
+      if (file) return file
+    }
+  }
+  return event.dataTransfer?.files?.[0] ?? null
+}
+
 function handleNoteDrop(event: DragEvent) {
-  const file = event.dataTransfer?.files?.[0]
+  const file = extractDroppedFile(event)
   if (file) props.onNoteFileDropped(file)
 }
 </script>

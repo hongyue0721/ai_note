@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import DOMPurify from 'dompurify'
+import { marked } from 'marked'
 import type { PropType } from 'vue'
 import type { AskAnalysisState } from '../../types'
 
@@ -20,10 +23,33 @@ const props = defineProps({
   onUpdateNewResultTagDraft: { type: Function as PropType<(value: string) => void>, required: true },
 })
 
+function extractDroppedFile(event: DragEvent) {
+  const items = event.dataTransfer?.items
+  if (items?.length) {
+    for (const item of Array.from(items)) {
+      if (item.kind !== 'file') continue
+      const file = item.getAsFile()
+      if (file) return file
+    }
+  }
+  return event.dataTransfer?.files?.[0] ?? null
+}
+
 function handleQuestionDrop(event: DragEvent) {
-  const file = event.dataTransfer?.files?.[0]
+  const file = extractDroppedFile(event)
   if (file) props.onQuestionFileDropped(file)
 }
+
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+})
+
+const renderedSolveMarkdown = computed(() => {
+  const rawMarkdown = props.askState.streamedMarkdown || ''
+  const rawHtml = marked.parse(rawMarkdown, { async: false })
+  return DOMPurify.sanitize(rawHtml)
+})
 </script>
 
 <template>
@@ -52,9 +78,7 @@ function handleQuestionDrop(event: DragEvent) {
       <button class="primary-btn" :disabled="askState.solvingQuestion" @click="onAskQuestion">{{ askState.solvingQuestion ? '生成中...' : '提交问题并生成答案' }}</button>
     </div>
     <p v-if="askState.questionError" class="error-text">{{ askState.questionError }}</p>
-    <div v-if="askState.streamedMarkdown" class="detail-box solve-box markdown-answer-box fade-page">
-      <pre>{{ askState.streamedMarkdown }}</pre>
-    </div>
+    <div v-if="askState.streamedMarkdown" class="detail-box solve-box markdown-answer-box fade-page" v-html="renderedSolveMarkdown"></div>
     <div v-if="askState.streamedMarkdown" class="detail-box note-tags-editor">
       <strong>结果标签</strong>
       <div v-if="askState.resultTags.length" class="note-tag-row editable-note-tag-row">
