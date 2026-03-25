@@ -1,4 +1,5 @@
 import logging
+from time import perf_counter
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,8 +11,8 @@ from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.exceptions import AppException
 from app.core.logging import configure_logging
-from app.db.init_db import create_tables, seed_admin_user
-from app.db.session import SessionLocal
+from app.db.init_db import create_tables, ensure_runtime_configs, seed_admin_user
+from app.db.session import SessionLocal, verify_database_connection
 
 
 settings = get_settings()
@@ -23,6 +24,7 @@ app = FastAPI(
     version="0.1.0",
     description="StarGraph AI competition complete product backend.",
 )
+app.state.api_metrics = {"count": 0, "total_ms": 0.0}
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,12 +44,25 @@ app.mount(
 
 @app.on_event("startup")
 def on_startup() -> None:
+    verify_database_connection()
     create_tables()
     db: Session = SessionLocal()
     try:
         seed_admin_user(db)
+        ensure_runtime_configs(db)
     finally:
         db.close()
+
+
+@app.middleware("http")
+async def collect_api_metrics(request: Request, call_next):
+    started_at = perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (perf_counter() - started_at) * 1000
+    metrics = app.state.api_metrics
+    metrics["count"] += 1
+    metrics["total_ms"] += elapsed_ms
+    return response
 
 
 @app.exception_handler(AppException)
