@@ -758,10 +758,10 @@ pre {
 @media (max-width: 680px) {
   .student-layer-shell {
     width: 100%;
-    padding: 12px 12px 32px 12px;
+    padding: 8px 8px 32px 8px;
   }
 
-  /* Make sticker cards fit better on narrow screens */
+  /* Make sticker cards fit better on narrow screens, giving more width to content/inputs */
   .auth-card,
   .workspace-card,
   .composer-card,
@@ -780,17 +780,17 @@ pre {
   .inline-error-box,
   .editable-tag-item,
   .empty-card {
-    padding: 16px;
-    border-radius: var(--radius-md);
+    padding: 12px;
+    border-radius: var(--radius-sm);
   }
 
   .auth-card {
-    padding: 24px 16px;
+    padding: 16px 12px;
   }
 
   .workspace-topbar {
-    padding: 16px;
-    margin-bottom: 16px;
+    padding: 12px;
+    margin-bottom: 12px;
   }
 
   .notes-search-trigger-row,
@@ -802,26 +802,18 @@ pre {
   }
 
   .workspace-tabs {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 8px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 4px;
-    margin-bottom: 16px;
-  }
-
-  .workspace-tabs::-webkit-scrollbar {
-    display: none;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-bottom: 12px;
   }
 
   .tab-btn {
-    flex: 1;
-    padding: 10px 4px;
-    font-size: 14px;
+    padding: 8px 0;
+    font-size: 13px;
     text-align: center;
     white-space: nowrap;
-    min-width: 80px; 
+    width: 100%;
   }
 
   .primary-btn,
