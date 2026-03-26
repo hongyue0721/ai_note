@@ -427,7 +427,66 @@ label > span {
 
 @media (max-width: 680px) {
   .admin-shell {
-    width: min(100% - 20px, 1280px);
-    padding-top: 20px;
+    width: 100%;
+    padding: 16px 12px 40px 12px;
+  }
+
+  /* Compact panels */
+  .login-overlay-card,
+  .panel,
+  .monitor-card,
+  .runtime-config-card,
+  .review-item,
+  .user-stat-item,
+  .log-box {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .admin-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .admin-hero h1 {
+    font-size: 24px;
+  }
+
+  .page-switcher {
+    width: 100%;
+    display: flex;
+  }
+
+  .page-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 8px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .monitor-card strong {
+    font-size: 28px;
+  }
+
+  .action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .primary-btn {
+    width: 100%;
+  }
+
+  .user-stat-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .user-stat-item strong {
+    align-self: flex-start;
   }
 }

@@ -734,11 +734,42 @@ pre {
 
 @media (max-width: 680px) {
   .student-layer-shell {
-    width: min(100% - 16px, 1180px);
-    padding-top: 16px;
+    width: 100%;
+    padding: 12px 12px 32px 12px;
   }
 
-  .workspace-tabs,
+  /* Make sticker cards fit better on narrow screens */
+  .auth-card,
+  .workspace-card,
+  .composer-card,
+  .detail-box,
+  .note-preview-card,
+  .file-preview-media,
+  .notes-search-panel,
+  .note-node-card,
+  .note-raw-box,
+  .log-box,
+  .runtime-config-card,
+  .monitor-card,
+  .metric,
+  .profile-card,
+  .review-item,
+  .inline-error-box,
+  .editable-tag-item,
+  .empty-card {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .auth-card {
+    padding: 24px 16px;
+  }
+
+  .workspace-topbar {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
   .notes-search-trigger-row,
   .result-actions,
   .tag-add-row,
@@ -747,14 +778,61 @@ pre {
     align-items: stretch;
   }
 
-  .tab-btn,
+  .workspace-tabs {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    margin-bottom: 16px;
+  }
+
+  .workspace-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px 4px;
+    font-size: 14px;
+    text-align: center;
+    white-space: nowrap;
+    min-width: 80px; 
+  }
+
   .primary-btn,
   .danger-btn,
-  .ghost-btn {
+  .ghost-btn,
+  .composer-upload-icon-btn,
+  .note-title-btn,
+  .search-item.search-result-btn,
+  .related-note-list .search-result-btn {
     width: 100%;
+    text-align: center;
   }
 
   .editable-tag-item {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Typography downscaling */
+  .section-head h2,
+  .section-head h3,
+  .note-detail-head strong,
+  .search-item strong,
+  .note-title-btn,
+  .note-raw-box-head strong {
+    font-size: 18px;
+  }
+
+  .workspace-topbar-user {
+    font-size: 18px;
+  }
+
+  .topbar-metric strong {
+    font-size: 16px;
   }
 }
+
