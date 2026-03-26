@@ -28,7 +28,7 @@ export default defineConfig({
     },
     {
       name: 'admin',
-      testMatch: /admin-auth\.spec\.ts/,
+      testMatch: /admin-(auth|review|retry)\.spec\.ts/,
       use: {
         baseURL: adminBaseURL,
       },

@@ -23,6 +23,7 @@ class UploadPreviewData(BaseModel):
     content_category: str
     subject: str
     title: str
+    summary: str = ""
     normalized_text: str
     knowledge_candidates: list[KnowledgeCandidateData]
     confidence: float = Field(ge=0, le=1)

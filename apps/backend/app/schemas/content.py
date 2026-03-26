@@ -82,3 +82,4 @@ class NoteUpdateRequest(BaseModel):
     category: str | None = None
     raw_text: str | None = None
     cleaned_text: str | None = None
+    tags: list[ContentTagData] | None = None

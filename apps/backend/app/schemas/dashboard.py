@@ -9,10 +9,20 @@ class DashboardData(BaseModel):
     failed_parse_job_count: int
 
 
+class UserNoteStatItem(BaseModel):
+    username: str
+    space_key: str
+    note_count: int
+
+
 class MonitorOverviewData(BaseModel):
     service_status: str
     parse_job_total: int
     parse_job_pending: int
     parse_job_failed: int
-    review_task_pending: int
     latest_error_messages: list[str]
+    api_request_count: int
+    api_avg_response_ms: float
+    total_user_count: int
+    total_note_count: int
+    user_note_stats: list[UserNoteStatItem]

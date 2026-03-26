@@ -6,6 +6,7 @@ from openai import OpenAI  # pyright: ignore[reportMissingImports]
 
 from app.core.config import get_settings
 from app.core.exceptions import AppException
+from app.schemas.runtime_config import RuntimeConfigItem
 
 
 @dataclass
@@ -15,9 +16,19 @@ class LlmResponse:
 
 
 class OpenAIClient:
-    def __init__(self) -> None:
+    def __init__(self, runtime_config: RuntimeConfigItem | None = None) -> None:
         settings = get_settings()
-        if not settings.openai_api_key:
+        api_key = (
+            runtime_config.api_key
+            if runtime_config is not None
+            else settings.openai_api_key
+        )
+        base_url = (
+            runtime_config.base_url
+            if runtime_config is not None
+            else settings.openai_base_url
+        )
+        if not api_key:
             raise AppException(
                 code=5001,
                 message="OPENAI_API_KEY is not configured",
@@ -25,8 +36,8 @@ class OpenAIClient:
             )
 
         self.client = OpenAI(
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
+            api_key=api_key,
+            base_url=base_url,
             timeout=settings.openai_timeout_seconds,
         )
 

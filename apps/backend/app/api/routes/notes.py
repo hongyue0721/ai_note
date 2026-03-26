@@ -6,11 +6,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps.auth import require_user_token
+from app.core.config import get_settings
 from app.core.exceptions import NotFoundException
 from app.db.session import get_db
 from app.models.file import FileRecord
 from app.models.note import Note
 from app.models.parse_job import ParseJob
+from app.models.review_task import ReviewTask
 from app.schemas.classifier import ClassificationResult
 from app.schemas.common import ApiResponse
 from app.schemas.content import (
@@ -21,6 +23,10 @@ from app.schemas.content import (
 )
 from app.schemas.preview import UploadPreviewData
 from app.core.constants import ParseJobStatus
+from app.services.canonical_tags import (
+    get_entity_canonical_tags,
+    sync_entity_canonical_tags,
+)
 
 
 router = APIRouter(tags=["notes"])
@@ -32,21 +38,17 @@ class NoteConfirmRequest(UploadPreviewData):
 
 
 def _get_note_tags(db: Session, note_id: UUID) -> list[ContentTagData]:
-    stmt = (
-        select(ParseJob)
-        .where(ParseJob.entity_type == "note", ParseJob.entity_id == note_id)
-        .order_by(ParseJob.created_at.desc())
-    )
-    job = db.scalars(stmt.limit(1)).first()
-    if job is None or not job.result_json:
-        return []
+    return get_entity_canonical_tags(db, entity_type="note", entity_id=note_id)
 
-    candidates = job.result_json.get("knowledge_candidates", [])
-    return [
-        ContentTagData.model_validate(item)
-        for item in candidates
-        if isinstance(item, dict)
-    ]
+
+def _normalized_file_url(file_record: FileRecord | None) -> str | None:
+    if file_record is None:
+        return None
+    current = file_record.file_url or ""
+    if current.startswith(get_settings().normalized_uploads_url_base):
+        return current
+    normalized_key = file_record.object_key.lstrip("/")
+    return f"{get_settings().normalized_uploads_url_base}/{normalized_key}"
 
 
 def _build_note_data(item: Note) -> NoteDetailData:
@@ -66,7 +68,7 @@ def _build_note_data_with_db(db: Session, item: Note) -> NoteDetailData:
         raw_text=item.raw_text,
         cleaned_text=item.cleaned_text,
         file_id=item.file_id,
-        file_url=file_record.file_url if file_record else None,
+        file_url=_normalized_file_url(file_record),
         original_filename=file_record.original_filename if file_record else None,
         mime_type=file_record.mime_type if file_record else None,
         file_kind=file_record.file_kind if file_record else None,
@@ -90,7 +92,7 @@ def list_notes(
     if category:
         stmt = stmt.where(Note.category == category)
 
-    items = db.scalars(stmt.limit(20)).all()
+    items = db.scalars(stmt).all()
     return ApiResponse(
         data=[
             NoteListItem(**_build_note_data_with_db(db, item).model_dump(mode="json"))
@@ -127,8 +129,17 @@ def update_note(
     if item.user_id != UUID(str(token_payload["sub"])):
         raise NotFoundException("note not found")
 
-    for field, value in payload.model_dump(exclude_none=True).items():
+    payload_data = payload.model_dump(exclude_none=True)
+    next_tags = payload_data.pop("tags", None)
+    for field, value in payload_data.items():
         setattr(item, field, value)
+    if next_tags is not None:
+        sync_entity_canonical_tags(
+            db,
+            entity_type="note",
+            entity_id=item.id,
+            tags=next_tags,
+        )
     db.commit()
     db.refresh(item)
 
@@ -154,6 +165,14 @@ def delete_note(
     ).all()
     for job in parse_jobs:
         db.delete(job)
+
+    review_tasks = db.scalars(
+        select(ReviewTask).where(
+            ReviewTask.entity_type == "note", ReviewTask.entity_id == note_id
+        )
+    ).all()
+    for task in review_tasks:
+        db.delete(task)
 
     db.delete(item)
     db.commit()
@@ -213,6 +232,12 @@ def confirm_note_from_preview(
         finished_at=item.created_at,
     )
     db.add(parse_job)
+    sync_entity_canonical_tags(
+        db,
+        entity_type="note",
+        entity_id=item.id,
+        tags=payload.knowledge_candidates,
+    )
     db.commit()
     db.refresh(item)
 

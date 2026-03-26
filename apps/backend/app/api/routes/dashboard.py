@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -11,8 +11,9 @@ from app.models.note import Note
 from app.models.parse_job import ParseJob
 from app.models.problem import Problem
 from app.models.review_task import ReviewTask
+from app.models.user import User
 from app.schemas.common import ApiResponse
-from app.schemas.dashboard import DashboardData, MonitorOverviewData
+from app.schemas.dashboard import DashboardData, MonitorOverviewData, UserNoteStatItem
 
 
 router = APIRouter(tags=["dashboard"])
@@ -20,15 +21,16 @@ router = APIRouter(tags=["dashboard"])
 
 @router.get("/dashboard")
 def get_dashboard(
-    _: dict[str, object] = Depends(require_user_token),
+    token_payload: dict[str, object] = Depends(require_user_token),
     db: Session = Depends(get_db),
 ) -> ApiResponse[DashboardData]:
+    user_id = str(token_payload["sub"])
     today = datetime.now(UTC).date()
     problem_count = (
         db.scalar(
             select(func.count())
             .select_from(Problem)
-            .where(func.date(Problem.created_at) == today)
+            .where(Problem.user_id == user_id, func.date(Problem.created_at) == today)
         )
         or 0
     )
@@ -36,7 +38,7 @@ def get_dashboard(
         db.scalar(
             select(func.count())
             .select_from(Note)
-            .where(func.date(Note.created_at) == today)
+            .where(Note.user_id == user_id, func.date(Note.created_at) == today)
         )
         or 0
     )
@@ -44,7 +46,10 @@ def get_dashboard(
         db.scalar(
             select(func.count())
             .select_from(ReviewTask)
-            .where(ReviewTask.status == ReviewTaskStatus.PENDING.value)
+            .where(
+                ReviewTask.user_id == user_id,
+                ReviewTask.status == ReviewTaskStatus.PENDING.value,
+            )
         )
         or 0
     )
@@ -52,7 +57,10 @@ def get_dashboard(
         db.scalar(
             select(func.count())
             .select_from(ParseJob)
-            .where(ParseJob.status == ParseJobStatus.PENDING.value)
+            .where(
+                ParseJob.user_id == user_id,
+                ParseJob.status == ParseJobStatus.PENDING.value,
+            )
         )
         or 0
     )
@@ -60,7 +68,10 @@ def get_dashboard(
         db.scalar(
             select(func.count())
             .select_from(ParseJob)
-            .where(ParseJob.status == ParseJobStatus.FAILED.value)
+            .where(
+                ParseJob.user_id == user_id,
+                ParseJob.status == ParseJobStatus.FAILED.value,
+            )
         )
         or 0
     )
@@ -78,6 +89,7 @@ def get_dashboard(
 
 @router.get("/admin/monitor/overview")
 def get_monitor_overview(
+    request: Request,
     _: dict[str, object] = Depends(require_admin_token),
     db: Session = Depends(get_db),
 ) -> ApiResponse[MonitorOverviewData]:
@@ -98,14 +110,21 @@ def get_monitor_overview(
         )
         or 0
     )
-    review_pending = (
-        db.scalar(
-            select(func.count())
-            .select_from(ReviewTask)
-            .where(ReviewTask.status == ReviewTaskStatus.PENDING.value)
+    total_users = db.scalar(select(func.count()).select_from(User)) or 0
+    total_notes = db.scalar(select(func.count()).select_from(Note)) or 0
+
+    user_note_rows = db.execute(
+        select(
+            User.username,
+            User.space_key,
+            func.count(Note.id).label("note_count"),
         )
-        or 0
-    )
+        .select_from(User)
+        .outerjoin(Note, Note.user_id == User.id)
+        .group_by(User.id, User.username, User.space_key, User.created_at)
+        .order_by(func.count(Note.id).desc(), User.created_at.desc())
+        .limit(20)
+    ).all()
 
     latest_errors = db.scalars(
         select(ParseJob.error_message)
@@ -114,13 +133,32 @@ def get_monitor_overview(
         .limit(5)
     ).all()
 
+    metrics = getattr(request.app.state, "api_metrics", None)
+    request_count = int(metrics["count"]) if isinstance(metrics, dict) else total
+    avg_response_ms = (
+        round(float(metrics["total_ms"]) / request_count, 1)
+        if isinstance(metrics, dict) and request_count
+        else 0.0
+    )
+
     return ApiResponse(
         data=MonitorOverviewData(
             service_status="ok",
             parse_job_total=total,
             parse_job_pending=pending,
             parse_job_failed=failed,
-            review_task_pending=review_pending,
             latest_error_messages=[msg for msg in latest_errors if msg],
+            api_request_count=request_count,
+            api_avg_response_ms=avg_response_ms,
+            total_user_count=total_users,
+            total_note_count=total_notes,
+            user_note_stats=[
+                UserNoteStatItem(
+                    username=row.username,
+                    space_key=row.space_key,
+                    note_count=int(row.note_count or 0),
+                )
+                for row in user_note_rows
+            ],
         )
     )

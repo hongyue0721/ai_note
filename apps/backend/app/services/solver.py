@@ -2,11 +2,12 @@ import json
 from pathlib import Path
 
 from pydantic import ValidationError
+from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppException
-from app.core.config import get_settings
 from app.schemas.solve import SolveResultData
 from app.services.llm_client import OpenAIClient
+from app.services.runtime_config import get_runtime_scope_config
 
 
 PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts" / "solve_prompt.txt"
@@ -88,13 +89,15 @@ def _normalize_solve_payload(
     return normalized
 
 
-def solve_with_ai(*, question_text: str, subject: str | None) -> SolveResultData:
-    settings = get_settings()
-    client = OpenAIClient()
+def solve_with_ai(
+    *, question_text: str, subject: str | None, db: Session
+) -> SolveResultData:
+    runtime_config = get_runtime_scope_config(db, "solve")
+    client = OpenAIClient(runtime_config=runtime_config)
 
     user_prompt = f"subject={subject or 'unknown'}\nquestion_text={question_text}\n"
     response = client.chat_json(
-        model=settings.openai_model_solve,
+        model=runtime_config.model_name,
         system_prompt=_load_prompt(),
         user_prompt=user_prompt,
     )

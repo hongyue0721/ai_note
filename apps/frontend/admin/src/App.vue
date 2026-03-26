@@ -53,6 +53,7 @@ const runtimeConfig = reactive<RuntimeConfigResponse>({
   solve: { scope: 'solve', vendor: 'openai-compatible', base_url: '', api_key: '', model_name: '' },
   classify: { scope: 'classify', vendor: 'openai-compatible', base_url: '', api_key: '', model_name: '' },
 })
+const currentPage = ref<'data' | 'settings'>('data')
 const credentialForm = reactive({
   username: '',
   currentPassword: '',
@@ -70,13 +71,7 @@ const ui = reactive({
   savingCredentials: false,
 })
 
-const failedRate = computed(() => {
-  if (!monitor.value || monitor.value.parse_job_total === 0) return 0
-  return Math.round((monitor.value.parse_job_failed / monitor.value.parse_job_total) * 100)
-})
 const userStats = computed(() => monitor.value?.user_note_stats ?? [])
-const adminDisplayName = computed(() => adminProfile.value?.display_name || '管理员')
-const adminUsername = computed(() => adminProfile.value?.username || 'admin')
 
 async function request<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
   const startedAt = performance.now()
@@ -234,126 +229,116 @@ async function saveAdminCredentials() {
     <template v-else>
       <section class="admin-hero">
         <div>
-          <span class="eyebrow">StarGraph AI · Admin Console</span>
-          <h1>登录、状态、接口指标与 API 管理。</h1>
-          <p>后台端收口为单独登录层，以及面向演示与排障的实时观测页：请求数、平均响应、注册用户与笔记规模集中查看。</p>
-        </div>
-        <div class="admin-hero-card">
-          <div class="metric"><strong>{{ monitor?.api_request_count ?? ui.requestCount }}</strong><span>请求数</span></div>
-          <div class="metric"><strong>{{ monitor?.api_avg_response_ms ?? ui.lastResponseMs }}ms</strong><span>平均响应</span></div>
-          <div class="metric"><strong>{{ monitor?.total_user_count ?? 0 }}</strong><span>注册用户名数</span></div>
-          <div class="metric"><strong>{{ monitor?.total_note_count ?? 0 }}</strong><span>笔记总数</span></div>
+          <h1>管理页面</h1>
         </div>
       </section>
 
+      <section class="page-switcher">
+        <button class="page-tab" :class="{ active: currentPage === 'data' }" @click="currentPage = 'data'">数据管理</button>
+        <button class="page-tab" :class="{ active: currentPage === 'settings' }" @click="currentPage = 'settings'">管理设置</button>
+      </section>
+
       <main class="admin-grid compact-grid-layout">
-        <section class="panel profile-panel">
+        <section v-if="currentPage === 'data'" class="panel section-group-panel data-management-panel">
           <div class="section-head">
-            <h2>当前管理员</h2>
-            <span>{{ monitor?.service_status ?? 'idle' }}</span>
+            <h2>数据管理</h2>
           </div>
-          <div class="profile-card">
-            <strong>{{ adminDisplayName }}</strong>
-            <span>{{ adminUsername }}</span>
-          </div>
-          <div class="metric-stack">
-            <div class="monitor-card">
-              <strong>{{ monitor?.parse_job_total ?? 0 }}</strong>
-              <span>解析任务总数</span>
-            </div>
-            <div class="monitor-card">
-              <strong>{{ failedRate }}%</strong>
-              <span>失败率</span>
-            </div>
-          </div>
-          <div class="runtime-config-card credential-card">
-            <h3>修改登录信息</h3>
-            <label><span>用户名</span><input v-model="credentialForm.username" type="text" /></label>
-            <label><span>当前密码</span><input v-model="credentialForm.currentPassword" type="password" /></label>
-            <label><span>新密码</span><input v-model="credentialForm.newPassword" type="password" placeholder="留空则不修改密码" /></label>
-            <div class="action-row">
-              <button class="primary-btn" :disabled="ui.savingCredentials" @click="saveAdminCredentials">{{ ui.savingCredentials ? '保存中...' : '保存登录信息' }}</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel monitor-panel">
-          <div class="section-head">
-            <h2>状态与接口指标观察</h2>
-            <span>{{ ui.lastAction || '仅保留登录、状态与接口指标观察' }}</span>
-          </div>
-          <div class="monitor-grid">
-            <div class="monitor-card">
-              <strong>{{ monitor?.parse_job_pending ?? 0 }}</strong>
-              <span>待执行任务</span>
-            </div>
-            <div class="monitor-card failure">
-              <strong>{{ monitor?.parse_job_failed ?? 0 }}</strong>
-              <span>失败任务</span>
-            </div>
-            <div class="monitor-card success">
-              <strong>{{ monitor?.api_avg_response_ms ?? ui.lastResponseMs }}ms</strong>
-              <span>平均响应时间</span>
-            </div>
-          </div>
-          <div class="monitor-grid compact-grid">
-            <div class="monitor-card">
-              <strong>{{ monitor?.api_request_count ?? ui.requestCount }}</strong>
-              <span>API 调用次数</span>
-            </div>
-            <div class="monitor-card">
-              <strong>{{ ui.lastResponseMs }}ms</strong>
-              <span>最近响应时间</span>
-            </div>
-          </div>
-          <div class="log-box">
-            <h3>最近错误</h3>
-            <ul>
-              <li v-for="msg in monitor?.latest_error_messages ?? ['当前无错误日志']" :key="msg">{{ msg }}</li>
-            </ul>
-          </div>
-        </section>
-
-        <section class="panel review-panel observation-panel">
-          <div class="section-head">
-            <h2>注册用户名与笔记数量</h2>
-            <span>展示最近注册/存在的用户名空间与对应笔记总量</span>
-          </div>
-          <div v-if="userStats.length" class="review-list user-stat-list">
-            <article v-for="item in userStats" :key="`${item.space_key}-${item.username}`" class="review-item user-stat-item">
-              <div>
-                <h3>{{ item.username }}</h3>
-                <p>{{ item.space_key }}</p>
+          <div class="group-grid data-management-grid">
+            <section class="panel monitor-panel inner-panel">
+              <div class="section-head">
+                <h2>状态与接口指标观察</h2>
               </div>
-              <strong>{{ item.note_count }}</strong>
-            </article>
+              <div class="monitor-grid">
+                <div class="monitor-card">
+                  <strong>{{ monitor?.parse_job_pending ?? 0 }}</strong>
+                  <span>待执行任务</span>
+                </div>
+                <div class="monitor-card failure">
+                  <strong>{{ monitor?.parse_job_failed ?? 0 }}</strong>
+                  <span>失败任务</span>
+                </div>
+                <div class="monitor-card success">
+                  <strong>{{ monitor?.api_avg_response_ms ?? ui.lastResponseMs }}ms</strong>
+                  <span>平均响应时间</span>
+                </div>
+              </div>
+              <div class="monitor-grid compact-grid">
+                <div class="monitor-card">
+                  <strong>{{ monitor?.api_request_count ?? ui.requestCount }}</strong>
+                  <span>API 调用次数</span>
+                </div>
+                <div class="monitor-card">
+                  <strong>{{ ui.lastResponseMs }}ms</strong>
+                  <span>最近响应时间</span>
+                </div>
+              </div>
+              <div class="log-box">
+                <h3>最近错误</h3>
+                <ul>
+                  <li v-for="msg in monitor?.latest_error_messages ?? ['当前无错误日志']" :key="msg">{{ msg }}</li>
+                </ul>
+              </div>
+            </section>
+
+            <section class="panel review-panel observation-panel inner-panel">
+              <div class="section-head">
+                <h2>用户笔记数量详情</h2>
+              </div>
+              <div v-if="userStats.length" class="review-list user-stat-list">
+                <article v-for="item in userStats" :key="`${item.space_key}-${item.username}`" class="review-item user-stat-item">
+                  <div>
+                    <h3>{{ item.username }}</h3>
+                    <p>{{ item.space_key }}</p>
+                  </div>
+                  <strong>{{ item.note_count }}</strong>
+                </article>
+              </div>
+              <div v-else class="empty-card">当前暂无可展示的用户名统计。</div>
+            </section>
           </div>
-          <div v-else class="empty-card">当前暂无可展示的用户名统计。</div>
         </section>
 
-        <section class="panel review-panel api-management-panel">
+        <section v-if="currentPage === 'settings'" class="panel section-group-panel management-settings-panel">
           <div class="section-head">
-            <h2>API 管理</h2>
-            <span>管理员可持久化修改 solve / classify 的供应商、地址、密钥与模型</span>
+            <h2>管理设置</h2>
           </div>
-          <div class="runtime-config-grid">
-            <div class="runtime-config-card">
-              <h3>Solve</h3>
-              <label><span>供应商</span><input v-model="runtimeConfig.solve.vendor" type="text" /></label>
-              <label><span>Base URL</span><input v-model="runtimeConfig.solve.base_url" type="text" /></label>
-              <label><span>API Key</span><input v-model="runtimeConfig.solve.api_key" type="text" /></label>
-              <label><span>模型名</span><input v-model="runtimeConfig.solve.model_name" type="text" /></label>
-            </div>
-            <div class="runtime-config-card">
-              <h3>Classify</h3>
-              <label><span>供应商</span><input v-model="runtimeConfig.classify.vendor" type="text" /></label>
-              <label><span>Base URL</span><input v-model="runtimeConfig.classify.base_url" type="text" /></label>
-              <label><span>API Key</span><input v-model="runtimeConfig.classify.api_key" type="text" /></label>
-              <label><span>模型名</span><input v-model="runtimeConfig.classify.model_name" type="text" /></label>
-            </div>
-          </div>
-          <div class="action-row">
-            <button class="primary-btn" :disabled="ui.savingRuntimeConfig" @click="saveRuntimeConfig">{{ ui.savingRuntimeConfig ? '保存中...' : '保存模型配置' }}</button>
+          <div class="group-grid management-settings-grid">
+            <section class="panel profile-panel inner-panel">
+              <div class="section-head">
+                <h2>修改登录信息</h2>
+              </div>
+              <div class="runtime-config-card credential-card">
+                <label><span>用户名</span><input v-model="credentialForm.username" type="text" /></label>
+                <label><span>当前密码</span><input v-model="credentialForm.currentPassword" type="password" /></label>
+                <label><span>新密码</span><input v-model="credentialForm.newPassword" type="password" placeholder="留空则不修改密码" /></label>
+                <div class="action-row">
+                  <button class="primary-btn" :disabled="ui.savingCredentials" @click="saveAdminCredentials">{{ ui.savingCredentials ? '保存中...' : '保存登录信息' }}</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel review-panel api-management-panel inner-panel">
+              <div class="section-head">
+                <h2>API 管理</h2>
+              </div>
+              <div class="runtime-config-grid">
+                <div class="runtime-config-card">
+                  <h3>文本模型</h3>
+                  <label><span>Base URL</span><input v-model="runtimeConfig.solve.base_url" type="text" /></label>
+                  <label><span>API Key</span><input v-model="runtimeConfig.solve.api_key" type="text" /></label>
+                  <label><span>模型名</span><input v-model="runtimeConfig.solve.model_name" type="text" /></label>
+                </div>
+                <div class="runtime-config-card">
+                  <h3>视觉模型</h3>
+                  <label><span>Base URL</span><input v-model="runtimeConfig.classify.base_url" type="text" /></label>
+                  <label><span>API Key</span><input v-model="runtimeConfig.classify.api_key" type="text" /></label>
+                  <label><span>模型名</span><input v-model="runtimeConfig.classify.model_name" type="text" /></label>
+                </div>
+              </div>
+              <div class="action-row">
+                <button class="primary-btn" :disabled="ui.savingRuntimeConfig" @click="saveRuntimeConfig">{{ ui.savingRuntimeConfig ? '保存中...' : '保存模型配置' }}</button>
+              </div>
+            </section>
           </div>
         </section>
 

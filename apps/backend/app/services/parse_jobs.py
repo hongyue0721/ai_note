@@ -3,12 +3,11 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.constants import ParseJobStatus, ReviewTaskStatus, ReviewTaskType
+from app.core.constants import ParseJobStatus
 from app.core.config import get_settings
 from app.models.note import Note
 from app.models.parse_job import ParseJob
 from app.models.problem import Problem
-from app.models.review_task import ReviewTask
 from app.services.classifier import classify_content
 
 
@@ -34,6 +33,14 @@ def _build_mock_result(job: ParseJob, entity_text: str | None) -> dict:
 
     low_confidence = "难" in base_text or entity_text is None
     confidence = 0.62 if low_confidence else 0.91
+    candidates = []
+    if "方程" in base_text or entity_text is None:
+        candidates.append(
+            {
+                "name": "一元二次方程",
+                "confidence": confidence,
+            }
+        )
 
     return {
         "title": title,
@@ -41,15 +48,10 @@ def _build_mock_result(job: ParseJob, entity_text: str | None) -> dict:
         "file_kind": file_kind,
         "raw_text": base_text,
         "normalized_text": base_text.strip(),
-        "knowledge_candidates": [
-            {
-                "name": "一元二次方程"
-                if "方程" in base_text or entity_text is None
-                else "通用知识点",
-                "confidence": confidence,
-            }
-        ],
+        "knowledge_candidates": candidates,
         "confidence": confidence,
+        "needs_review": False,
+        "review_reason": "",
     }
 
 
@@ -62,8 +64,21 @@ def _get_entity_text(db: Session, job: ParseJob) -> str | None:
     return problem.stem_text if problem else None
 
 
+def _set_entity_parse_status(db: Session, job: ParseJob, status: str) -> None:
+    if job.entity_type == "note":
+        note = db.get(Note, job.entity_id)
+        if note is not None:
+            note.parse_status = status
+        return
+
+    problem = db.get(Problem, job.entity_id)
+    if problem is not None:
+        problem.parse_status = status
+
+
 def process_parse_job(db: Session, job: ParseJob) -> ParseJob:
     job.status = ParseJobStatus.RUNNING.value
+    _set_entity_parse_status(db, job, ParseJobStatus.RUNNING.value)
     job.started_at = datetime.now(UTC)
     job.attempt_count += 1
     db.commit()
@@ -85,39 +100,25 @@ def process_parse_job(db: Session, job: ParseJob) -> ParseJob:
                 content_category=str(
                     request_payload.get("content_category", job.entity_type)
                 ),
+                db=db,
             )
             result = classification.model_dump(mode="json")
             job.llm_model = model_name
-            confidence = classification.confidence
-            needs_review = classification.needs_review
-            review_reason = classification.review_reason
         else:
             result = _build_mock_result(job, entity_text)
-            confidence = result.get("confidence", 1)
-            needs_review = confidence < 0.8
-            review_reason = "low confidence mock result" if needs_review else None
 
         job.result_json = result
         job.status = ParseJobStatus.SUCCESS.value
+        _set_entity_parse_status(db, job, ParseJobStatus.SUCCESS.value)
         job.error_message = None
         job.finished_at = datetime.now(UTC)
-
-        if confidence < 0.8 or needs_review:
-            review_task = ReviewTask(
-                user_id=job.user_id,
-                task_type=ReviewTaskType.TAG_REVIEW.value,
-                entity_type=job.entity_type,
-                entity_id=job.entity_id,
-                payload_json={**result, "review_reason": review_reason},
-                status=ReviewTaskStatus.PENDING.value,
-            )
-            db.add(review_task)
 
         db.commit()
         db.refresh(job)
         return job
     except Exception as exc:
         job.status = ParseJobStatus.FAILED.value
+        _set_entity_parse_status(db, job, ParseJobStatus.FAILED.value)
         job.error_message = str(exc)
         job.finished_at = datetime.now(UTC)
         db.commit()

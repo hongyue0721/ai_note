@@ -33,7 +33,7 @@ def list_problems(
     if category:
         stmt = stmt.where(Problem.category == category)
 
-    items = db.scalars(stmt.limit(20)).all()
+    items = db.scalars(stmt).all()
     return ApiResponse(
         data=[
             ProblemListItem(

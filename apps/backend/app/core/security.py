@@ -23,10 +23,13 @@ def create_access_token(
     expires_minutes: int = 60 * 24,
     scope: str = "user",
     secret: str | None = None,
+    space_key: str | None = None,
 ) -> str:
     settings = get_settings()
     expire_at = datetime.now(UTC) + timedelta(minutes=expires_minutes)
     payload = {"sub": subject, "exp": expire_at, "scope": scope}
+    if space_key:
+        payload["space_key"] = space_key
     signing_secret = secret or settings.jwt_secret
     return jwt.encode(payload, signing_secret, algorithm=ALGORITHM)
 

@@ -8,12 +8,25 @@ from app.api.deps.auth import require_admin_token
 from app.core.constants import ReviewTaskStatus
 from app.core.exceptions import NotFoundException
 from app.db.session import get_db
+from app.models.parse_job import ParseJob
 from app.models.review_task import ReviewTask
 from app.schemas.common import ApiResponse
 from app.schemas.review import ReviewDecisionData, ReviewDecisionRequest, ReviewTaskItem
+from app.services.canonical_tags import sync_entity_canonical_tags
 
 
 router = APIRouter(tags=["review"])
+
+
+def _latest_entity_parse_job(
+    db: Session, entity_type: str, entity_id: UUID
+) -> ParseJob | None:
+    stmt = (
+        select(ParseJob)
+        .where(ParseJob.entity_type == entity_type, ParseJob.entity_id == entity_id)
+        .order_by(ParseJob.created_at.desc())
+    )
+    return db.scalars(stmt).first()
 
 
 @router.get("/review/tasks")
@@ -72,6 +85,19 @@ def decide_review_task(
         task.payload_json = {}
     task.payload_json["decision"] = payload.action
     task.payload_json["edited_tags"] = payload.edited_tags
+
+    if payload.action == "replace":
+        parse_job = _latest_entity_parse_job(db, task.entity_type, task.entity_id)
+        if parse_job is not None:
+            next_result = dict(parse_job.result_json or {})
+            next_result["knowledge_candidates"] = payload.edited_tags
+            parse_job.result_json = next_result
+        sync_entity_canonical_tags(
+            db,
+            entity_type=task.entity_type,
+            entity_id=task.entity_id,
+            tags=payload.edited_tags,
+        )
     db.commit()
 
     return ApiResponse(data=ReviewDecisionData(id=task.id, status=task.status))

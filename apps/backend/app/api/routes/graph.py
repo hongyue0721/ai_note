@@ -25,11 +25,26 @@ def get_graph_overview(
     jobs = db.scalars(
         select(ParseJob)
         .where(ParseJob.user_id == user_id, ParseJob.result_json.is_not(None))
-        .limit(50)
+        .order_by(ParseJob.created_at.desc())
+        .limit(100)
     ).all()
+    note_ids = {
+        item[0]
+        for item in db.execute(select(Note.id).where(Note.user_id == user_id)).all()
+    }
+    problem_ids = {
+        item[0]
+        for item in db.execute(
+            select(Problem.id).where(Problem.user_id == user_id)
+        ).all()
+    }
     weights: dict[str, float] = {}
 
     for job in jobs:
+        if job.entity_type == "note" and job.entity_id not in note_ids:
+            continue
+        if job.entity_type == "problem" and job.entity_id not in problem_ids:
+            continue
         result = job.result_json or {}
         for item in result.get("knowledge_candidates", []):
             name = item.get("name")
@@ -73,11 +88,26 @@ def get_weak_tags(
     jobs = db.scalars(
         select(ParseJob)
         .where(ParseJob.user_id == user_id, ParseJob.result_json.is_not(None))
-        .limit(50)
+        .order_by(ParseJob.created_at.desc())
+        .limit(100)
     ).all()
+    note_ids = {
+        item[0]
+        for item in db.execute(select(Note.id).where(Note.user_id == user_id)).all()
+    }
+    problem_ids = {
+        item[0]
+        for item in db.execute(
+            select(Problem.id).where(Problem.user_id == user_id)
+        ).all()
+    }
     weights: dict[str, float] = {}
 
     for job in jobs:
+        if job.entity_type == "note" and job.entity_id not in note_ids:
+            continue
+        if job.entity_type == "problem" and job.entity_id not in problem_ids:
+            continue
         result = job.result_json or {}
         for item in result.get("knowledge_candidates", []):
             name = item.get("name")

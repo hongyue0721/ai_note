@@ -9,3 +9,10 @@ class SearchItem(BaseModel):
     subject: str
     category: str
     parse_status: str
+
+
+class SearchResponseData(BaseModel):
+    items: list[SearchItem]
+    total: int
+    limit: int
+    offset: int

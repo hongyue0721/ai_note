@@ -30,7 +30,7 @@ def list_parse_jobs(
     if status:
         stmt = stmt.where(ParseJob.status == status)
 
-    jobs = db.scalars(stmt.limit(50)).all()
+    jobs = db.scalars(stmt).all()
     return ApiResponse(
         data=[
             ParseJobListItem(
@@ -53,11 +53,13 @@ def list_parse_jobs(
 @router.get("/parse-jobs/{job_id}")
 def get_parse_job(
     job_id: UUID,
-    _: dict[str, object] = Depends(require_user_token),
+    token_payload: dict[str, object] = Depends(require_user_token),
     db: Session = Depends(get_db),
 ) -> ApiResponse[ParseJobResultData]:
     job = db.get(ParseJob, job_id)
     if job is None:
+        raise NotFoundException("parse job not found")
+    if job.user_id != UUID(str(token_payload["sub"])):
         raise NotFoundException("parse job not found")
 
     return ApiResponse(

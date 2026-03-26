@@ -24,6 +24,6 @@ class IngestionCreateRequest(BaseModel):
 class IngestionCreateData(BaseModel):
     entity_type: str
     entity_id: UUID
-    parse_job_id: UUID
+    parse_job_id: UUID | None = None
     parse_status: str
     content_category: str
