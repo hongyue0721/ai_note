@@ -1,17 +1,23 @@
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class UserRegisterRequest(BaseModel):
+    space_key: str = Field(default="default", min_length=1, max_length=64)
     username: str = Field(min_length=3, max_length=64)
     email: str | None = Field(default=None, max_length=255)
     password: str = Field(min_length=6, max_length=128)
 
 
 class UserLoginRequest(BaseModel):
+    space_key: str = Field(default="default", min_length=1, max_length=64)
     username: str = Field(min_length=3, max_length=64)
     password: str = Field(min_length=6, max_length=128)
+
+
+class SpaceEnterRequest(BaseModel):
+    space_key: str = Field(min_length=1, max_length=64)
 
 
 class AdminLoginRequest(BaseModel):
@@ -19,8 +25,21 @@ class AdminLoginRequest(BaseModel):
     password: str = Field(min_length=6, max_length=128)
 
 
+class AdminCredentialUpdateRequest(BaseModel):
+    current_password: str = Field(min_length=6, max_length=128)
+    username: str | None = Field(default=None, min_length=3, max_length=64)
+    new_password: str | None = Field(default=None, min_length=8, max_length=128)
+
+    @model_validator(mode="after")
+    def validate_change_target(self) -> "AdminCredentialUpdateRequest":
+        if not self.username and not self.new_password:
+            raise ValueError("username or new_password is required")
+        return self
+
+
 class UserProfile(BaseModel):
     id: UUID
+    space_key: str
     username: str
     email: str | None = None
     status: str
