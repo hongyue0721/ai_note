@@ -36,7 +36,7 @@ type RuntimeConfigResponse = {
 
 const loginForm = reactive({
   username: 'admin',
-  password: 'admin123456',
+  password: '',
 })
 
 const accessToken = ref('')
