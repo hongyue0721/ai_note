@@ -515,7 +515,12 @@ async function saveQuestionAsNote() {
         summary: noteSource.summary,
         subject: noteSource.subject,
         content_category: 'problem',
-        normalized_text: noteSource.normalized_text || askForm.questionText,
+        normalized_text: [
+          noteSource.normalized_text || askForm.questionText,
+          solveResult.value?.final_answer ? `\n\n【最终答案】\n${solveResult.value.final_answer}` : '',
+          solveResult.value?.solution_steps?.length ? `\n\n【解题步骤】\n${solveResult.value.solution_steps.map((step: string, i: number) => `${i + 1}. ${step}`).join('\n')}` : '',
+          solveResult.value?.knowledge_points?.length ? `\n\n【涉及知识点】\n${solveResult.value.knowledge_points.join('、')}` : '',
+        ].filter(Boolean).join(''),
         knowledge_candidates: askResultTags.value.length ? askResultTags.value : noteSource.knowledge_candidates,
       }),
     })
