@@ -12,9 +12,11 @@ from app.db.session import get_db
 from app.models.admin_user import AdminUser
 from app.models.user import User
 from app.schemas.auth import (
+    AdminCredentialUpdateRequest,
     AdminLoginData,
     AdminLoginRequest,
     AdminProfile,
+    SpaceEnterRequest,
     UserLoginData,
     UserLoginRequest,
     UserProfile,
@@ -26,9 +28,14 @@ from app.schemas.common import ApiResponse
 router = APIRouter(tags=["auth"])
 
 
+def _space_username(space_key: str) -> str:
+    return f"space::{space_key}"
+
+
 def _build_user_profile(user: User) -> UserProfile:
     return UserProfile(
         id=user.id,
+        space_key=user.space_key,
         username=user.username,
         email=user.email,
         status=user.status,
@@ -49,11 +56,18 @@ def register_user(
     payload: UserRegisterRequest,
     db: Session = Depends(get_db),
 ) -> ApiResponse[UserProfile]:
-    existing = db.scalar(select(User).where(User.username == payload.username))
+    space_key = payload.space_key.strip() or "default"
+    existing = db.scalar(
+        select(User).where(
+            User.space_key == space_key,
+            User.username == payload.username,
+        )
+    )
     if existing is not None:
-        raise ConflictException("username already exists")
+        raise ConflictException("username already exists in this space")
 
     user = User(
+        space_key=space_key,
         username=payload.username,
         email=payload.email,
         password_hash=hash_password(payload.password),
@@ -70,11 +84,53 @@ def login_user(
     payload: UserLoginRequest,
     db: Session = Depends(get_db),
 ) -> ApiResponse[UserLoginData]:
-    user = db.scalar(select(User).where(User.username == payload.username))
+    space_key = payload.space_key.strip() or "default"
+    user = db.scalar(
+        select(User).where(
+            User.space_key == space_key,
+            User.username == payload.username,
+        )
+    )
     if user is None or not verify_password(payload.password, user.password_hash):
-        raise UnauthorizedException("invalid username or password")
+        raise UnauthorizedException("invalid space, username or password")
 
-    token = create_access_token(subject=str(user.id), scope="user")
+    token = create_access_token(
+        subject=str(user.id),
+        scope="user",
+        space_key=user.space_key,
+    )
+    return ApiResponse(
+        data=UserLoginData(
+            access_token=token,
+            user=_build_user_profile(user),
+        )
+    )
+
+
+@router.post("/auth/space-enter")
+def enter_space(
+    payload: SpaceEnterRequest,
+    db: Session = Depends(get_db),
+) -> ApiResponse[UserLoginData]:
+    space_key = payload.space_key.strip()
+    user = db.scalar(select(User).where(User.space_key == space_key))
+    if user is None:
+        user = User(
+            space_key=space_key,
+            username=_space_username(space_key),
+            email=None,
+            password_hash=hash_password(f"space::{space_key}"),
+            status="active",
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    token = create_access_token(
+        subject=str(user.id),
+        scope="user",
+        space_key=user.space_key,
+    )
     return ApiResponse(
         data=UserLoginData(
             access_token=token,
@@ -127,4 +183,34 @@ def get_admin_me(
     admin = db.get(AdminUser, UUID(str(admin_id)))
     if admin is None:
         raise UnauthorizedException("admin not found")
+    return ApiResponse(data=_build_admin_profile(admin))
+
+
+@router.put("/admin/me")
+def update_admin_me(
+    payload: AdminCredentialUpdateRequest,
+    token_payload: dict[str, object] = Depends(require_admin_token),
+    db: Session = Depends(get_db),
+) -> ApiResponse[AdminProfile]:
+    admin_id = token_payload.get("sub")
+    admin = db.get(AdminUser, UUID(str(admin_id)))
+    if admin is None:
+        raise UnauthorizedException("admin not found")
+    if not verify_password(payload.current_password, admin.password_hash):
+        raise UnauthorizedException("invalid current password")
+
+    if payload.username and payload.username != admin.username:
+        existing = db.scalar(
+            select(AdminUser).where(AdminUser.username == payload.username)
+        )
+        if existing is not None:
+            raise ConflictException("admin username already exists")
+        admin.username = payload.username
+
+    if payload.new_password:
+        admin.password_hash = hash_password(payload.new_password)
+
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
     return ApiResponse(data=_build_admin_profile(admin))

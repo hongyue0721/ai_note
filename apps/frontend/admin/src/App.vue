@@ -34,17 +34,29 @@ type RuntimeConfigResponse = {
   classify: RuntimeConfigItem
 }
 
+type AdminProfile = {
+  id: string
+  username: string
+  display_name: string
+  status: string
+}
+
 const loginForm = reactive({
   username: 'admin',
   password: '',
 })
 
 const accessToken = ref('')
-const adminProfile = ref<{ username: string; display_name: string } | null>(null)
+const adminProfile = ref<AdminProfile | null>(null)
 const monitor = ref<MonitorOverview | null>(null)
 const runtimeConfig = reactive<RuntimeConfigResponse>({
   solve: { scope: 'solve', vendor: 'openai-compatible', base_url: '', api_key: '', model_name: '' },
   classify: { scope: 'classify', vendor: 'openai-compatible', base_url: '', api_key: '', model_name: '' },
+})
+const credentialForm = reactive({
+  username: '',
+  currentPassword: '',
+  newPassword: '',
 })
 
 const ui = reactive({
@@ -55,6 +67,7 @@ const ui = reactive({
   lastResponseMs: 0,
   requestCount: 0,
   savingRuntimeConfig: false,
+  savingCredentials: false,
 })
 
 const failedRate = computed(() => {
@@ -90,13 +103,16 @@ async function login() {
   try {
     const result = await request<{
       access_token: string
-      admin: { username: string; display_name: string }
+      admin: AdminProfile
     }>('/v1/admin/auth/login', {
       method: 'POST',
       body: JSON.stringify(loginForm),
     })
     accessToken.value = result.data.access_token
     adminProfile.value = result.data.admin
+    credentialForm.username = result.data.admin.username
+    credentialForm.currentPassword = ''
+    credentialForm.newPassword = ''
     await refreshAdminData()
   } catch (error) {
     ui.error = error instanceof Error ? error.message : '管理员登录失败'
@@ -110,6 +126,9 @@ async function refreshAdminData() {
   ui.loading = true
   ui.error = ''
   try {
+    const adminRes = await request<AdminProfile>('/v1/admin/me')
+    adminProfile.value = adminRes.data
+    credentialForm.username = adminRes.data.username
     const monitorRes = await request<MonitorOverview>('/v1/admin/monitor/overview')
     monitor.value = monitorRes.data
     const runtimeRes = await request<RuntimeConfigResponse>('/v1/admin/runtime-config/models')
@@ -150,6 +169,41 @@ async function saveRuntimeConfig() {
     ui.error = error instanceof Error ? error.message : '模型配置保存失败'
   } finally {
     ui.savingRuntimeConfig = false
+  }
+}
+
+async function saveAdminCredentials() {
+  if (!credentialForm.currentPassword) {
+    ui.error = '请输入当前密码'
+    return
+  }
+  if (!credentialForm.username.trim() && !credentialForm.newPassword.trim()) {
+    ui.error = '请至少修改用户名或新密码'
+    return
+  }
+
+  ui.savingCredentials = true
+  ui.error = ''
+  try {
+    const result = await request<AdminProfile>('/v1/admin/me', {
+      method: 'PUT',
+      body: JSON.stringify({
+        current_password: credentialForm.currentPassword,
+        username: credentialForm.username.trim(),
+        new_password: credentialForm.newPassword.trim() || undefined,
+      }),
+    })
+    adminProfile.value = result.data
+    loginForm.username = result.data.username
+    loginForm.password = credentialForm.newPassword.trim() || credentialForm.currentPassword
+    credentialForm.username = result.data.username
+    credentialForm.currentPassword = ''
+    credentialForm.newPassword = ''
+    ui.lastAction = '已更新管理员用户名/密码'
+  } catch (error) {
+    ui.error = error instanceof Error ? error.message : '管理员信息更新失败'
+  } finally {
+    ui.savingCredentials = false
   }
 }
 </script>
@@ -210,6 +264,15 @@ async function saveRuntimeConfig() {
             <div class="monitor-card">
               <strong>{{ failedRate }}%</strong>
               <span>失败率</span>
+            </div>
+          </div>
+          <div class="runtime-config-card credential-card">
+            <h3>修改登录信息</h3>
+            <label><span>用户名</span><input v-model="credentialForm.username" type="text" /></label>
+            <label><span>当前密码</span><input v-model="credentialForm.currentPassword" type="password" /></label>
+            <label><span>新密码</span><input v-model="credentialForm.newPassword" type="password" placeholder="留空则不修改密码" /></label>
+            <div class="action-row">
+              <button class="primary-btn" :disabled="ui.savingCredentials" @click="saveAdminCredentials">{{ ui.savingCredentials ? '保存中...' : '保存登录信息' }}</button>
             </div>
           </div>
         </section>
