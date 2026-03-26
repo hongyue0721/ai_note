@@ -57,7 +57,7 @@ def _normalize_solve_payload(
 
     normalized["solution_steps"] = _ensure_list_of_strings(
         normalized.get("solution_steps") or normalized.get("steps"),
-        default=["模型未提供分步过程，请结合最终答案人工复核。"],
+        default=["星星老师暂时没能给出详细的解题步骤，建议结合最终答案和课本一起理解哦～ 😊"],
     )
 
     normalized["knowledge_points"] = _ensure_list_of_strings(
@@ -78,12 +78,12 @@ def _normalize_solve_payload(
 
     warnings = _ensure_list_of_strings(
         normalized.get("warnings") or normalized.get("warning"),
-        default=["以下为 AI 参考解析，请以老师讲解或教材为准。"],
+        default=["以上为星星老师的 AI 参考解析，建议结合课本和老师的讲解一起理解哦～"],
     )
     if not any(
-        "AI" in item or "人工" in item or "参考解析" in item for item in warnings
+        "AI" in item or "参考" in item or "星星老师" in item for item in warnings
     ):
-        warnings.append("以下为 AI 参考解析，请以老师讲解或教材为准。")
+        warnings.append("以上为星星老师的 AI 参考解析，建议结合课本和老师的讲解一起理解哦～")
     normalized["warnings"] = warnings
 
     return normalized
