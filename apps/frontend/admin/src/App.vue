@@ -239,7 +239,8 @@ async function saveAdminCredentials() {
       </section>
 
       <main class="admin-grid compact-grid-layout">
-        <section v-if="currentPage === 'data'" class="panel section-group-panel data-management-panel">
+        <transition name="fade-scale" mode="out-in">
+          <section v-if="currentPage === 'data'" class="panel section-group-panel data-management-panel">
           <div class="section-head">
             <h2>数据管理</h2>
           </div>
@@ -298,7 +299,7 @@ async function saveAdminCredentials() {
           </div>
         </section>
 
-        <section v-if="currentPage === 'settings'" class="panel section-group-panel management-settings-panel">
+          <section v-else-if="currentPage === 'settings'" class="panel section-group-panel management-settings-panel">
           <div class="section-head">
             <h2>管理设置</h2>
           </div>
@@ -341,6 +342,7 @@ async function saveAdminCredentials() {
             </section>
           </div>
         </section>
+        </transition>
 
       </main>
     </template>
