@@ -1,0 +1,838 @@
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap');
+
+:root {
+  --font-acg: 'Nunito', 'M PLUS Rounded 1c', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  
+  --bg-color: #fdfbf7;
+  --text-base: #4a4e69;
+  --text-muted: #8892b0;
+  --text-dark: #22223b;
+  
+  --color-primary: #ffb3c6;
+  --color-primary-dark: #fb6f92;
+  --color-primary-light: #ffe5ec;
+  
+  --color-secondary: #a2d2ff;
+  --color-secondary-dark: #0077b6;
+  
+  --color-accent: #b2f7ef;
+  --color-accent-dark: #00b4d8;
+  
+  --color-danger: #ffc2d1;
+  --color-danger-dark: #ff5d8f;
+
+  --paper-bg-1: #ffffff;
+  --paper-bg-2: #fffbeb;
+  --paper-bg-3: #f0fdf4;
+  
+  --border-thick: 4px solid #ffffff;
+  --border-outline: 3px solid var(--text-base);
+  
+  --shadow-sticker: 6px 6px 0px var(--color-primary-light), 0px 4px 12px rgba(0,0,0,0.05);
+  --shadow-sticker-hover: 10px 10px 0px var(--color-primary), 0px 8px 24px rgba(0,0,0,0.1);
+  
+  --shadow-btn: 3px 3px 0px var(--text-base);
+  --shadow-btn-hover: 5px 5px 0px var(--text-base);
+  --shadow-btn-active: 1px 1px 0px var(--text-base);
+  
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  
+  --bounce-timing: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: auto;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  /* Cute dotted grid background */
+  background-image: radial-gradient(var(--text-muted) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-attachment: fixed;
+  color: var(--text-base);
+  font-family: var(--font-acg);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+button,
+input,
+textarea,
+select,
+iframe,
+a {
+  font-family: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  outline: none;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  border: var(--border-outline);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--text-dark);
+  padding: 10px 14px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.05);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-primary-dark);
+  box-shadow: inset 2px 2px 0px rgba(255, 179, 198, 0.2), 0 0 0 4px var(--color-primary-light);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+}
+
+label > span,
+.support-input-field > span,
+.inline-select-field > span {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.student-layer-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 48px;
+}
+
+.workspace-main,
+.auth-card,
+.workspace-card,
+.composer-card,
+.upload-confirm-page,
+.note-detail-pane,
+.standalone-detail-pane,
+.related-notes-panel,
+.notes-management-card,
+.note-list-pane,
+.search-list,
+.solve-box,
+.markdown-answer-box,
+.log-box,
+.review-list,
+.related-note-list {
+  display: grid;
+  gap: 20px;
+}
+
+.auth-layer {
+  min-height: calc(100vh - 64px);
+  display: grid;
+  place-items: center;
+}
+
+/* Base Sticker Cards */
+.auth-card,
+.workspace-card,
+.workspace-topbar,
+.notes-search-panel,
+.note-node-card,
+.detail-box,
+.search-item,
+.composer-card,
+.note-preview-card,
+.file-preview-media,
+.empty-card,
+.tag-review-card,
+.question-tag-strip,
+.graph-link-chip,
+.topbar-metric,
+.note-raw-box,
+.editable-tag-item,
+.runtime-config-card,
+.monitor-card,
+.metric,
+.profile-card,
+.review-item,
+.inline-error-box,
+.log-box {
+  background: var(--paper-bg-1);
+  border: var(--border-thick);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sticker);
+  transition: all 0.3s var(--bounce-timing);
+  position: relative;
+  overflow: visible; /* to allow shadows and pop outs */
+}
+
+/* Alternating colors for collage feel */
+.note-node-card:nth-child(even),
+.search-item:nth-child(even) {
+  background: var(--paper-bg-2);
+  transform: rotate(1deg);
+}
+
+.note-node-card:nth-child(odd),
+.search-item:nth-child(odd) {
+  background: var(--paper-bg-1);
+  transform: rotate(-1deg);
+}
+
+/* Card Hover */
+.note-node-card:hover,
+.search-item:hover,
+.composer-card:hover {
+  transform: translateY(-4px) scale(1.02) rotate(0deg);
+  box-shadow: var(--shadow-sticker-hover);
+  z-index: 10;
+}
+
+.auth-card {
+  width: min(560px, 100%);
+  padding: 32px;
+  background: var(--paper-bg-1);
+  transform: rotate(-1deg);
+}
+.auth-card:hover {
+  transform: rotate(0deg);
+}
+
+.workspace-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  background: var(--paper-bg-3);
+}
+
+.workspace-topbar-user {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  text-shadow: 1px 1px 0px #fff;
+}
+
+.workspace-topbar-metrics,
+.notes-search-trigger-row,
+.notes-pagination-row,
+.note-tag-row,
+.editable-note-tag-row,
+.question-tag-strip,
+.notes-graph-strip,
+.result-actions,
+.tag-add-row,
+.action-row,
+.composer-toolbar,
+.composer-support-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.topbar-metric {
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-light);
+  border: 2px solid #fff;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.05);
+}
+
+.topbar-metric strong,
+.hero-stats strong,
+.monitor-card strong,
+.metric strong,
+.profile-card strong {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+
+.topbar-metric span,
+.section-head span,
+.detail-box p,
+.search-item span,
+.empty-card,
+.picked-file-pill,
+.review-item p,
+.profile-card span,
+.monitor-card span,
+.runtime-config-card label span,
+.metric span,
+.inline-error-box span {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.workspace-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* Cute Buttons */
+.tab-btn,
+.primary-btn,
+.danger-btn,
+.ghost-btn,
+.mini-danger-btn,
+.note-title-btn,
+.search-item.search-result-btn,
+.related-note-list .search-result-btn {
+  border: var(--border-outline);
+  border-radius: var(--radius-pill);
+  background: #fff;
+  color: var(--text-dark);
+  padding: 10px 20px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-btn);
+  transition: all 0.2s var(--bounce-timing);
+  font-size: 15px;
+}
+
+.note-title-btn,
+.search-item.search-result-btn,
+.related-note-list .search-result-btn {
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  text-align: left;
+}
+
+.tab-btn.active,
+.primary-btn {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary-dark);
+  box-shadow: 3px 3px 0px var(--color-primary-dark);
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+}
+
+.graph-link-chip.linked {
+  background: var(--color-secondary);
+  color: #fff;
+  border-color: var(--color-secondary-dark);
+}
+
+.danger-btn {
+  background: var(--color-danger);
+  color: var(--color-danger-dark);
+  border-color: var(--color-danger-dark);
+}
+
+.ghost-btn.danger {
+  color: var(--color-danger-dark);
+  border-color: var(--color-danger-dark);
+}
+
+.tab-btn:hover:not(:disabled),
+.primary-btn:hover:not(:disabled),
+.danger-btn:hover:not(:disabled),
+.ghost-btn:hover:not(:disabled) {
+  transform: translateY(-2px) rotate(1deg);
+  box-shadow: var(--shadow-btn-hover);
+}
+
+.tab-btn.active:hover,
+.primary-btn:hover {
+  box-shadow: 5px 5px 0px var(--color-primary-dark);
+}
+
+.tab-btn:active:not(:disabled),
+.primary-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: var(--shadow-btn-active);
+}
+
+.primary-btn:disabled,
+.danger-btn:disabled,
+.tab-btn:disabled,
+.ghost-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.workspace-card,
+.composer-card,
+.detail-box,
+.note-preview-card,
+.file-preview-media,
+.notes-search-panel,
+.note-node-card,
+.note-raw-box,
+.log-box,
+.runtime-config-card,
+.monitor-card,
+.metric,
+.profile-card,
+.review-item,
+.inline-error-box,
+.editable-tag-item,
+.empty-card {
+  padding: 24px;
+}
+
+.section-head {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.section-head h2,
+.section-head h3,
+.note-detail-head strong,
+.search-item strong,
+.note-title-btn,
+.note-raw-box-head strong,
+.runtime-config-card h3,
+.log-box h3,
+.review-item h3 {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.section-head.compact {
+  margin-bottom: 12px;
+}
+
+/* Washi Tape Pills */
+.eyebrow,
+.pill,
+.graph-link-chip,
+.composer-badge,
+.picked-file-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: var(--paper-bg-2);
+  border: 2px dashed #d1d5db;
+  color: var(--text-dark);
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.05);
+  transform: rotate(-0.5deg);
+}
+
+.composer-badge { background: #e0fbfc; }
+.picked-file-pill { background: #ffdfd3; border-style: solid; }
+
+.dual-grid,
+.editable-tag-grid,
+.notes-management-grid,
+.monitor-grid,
+.hero-stats,
+.user-stat-list,
+.runtime-config-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.dual-grid,
+.runtime-config-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.editable-tag-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.editable-tag-item {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  padding: 16px;
+}
+
+.editable-tag-item small {
+  color: var(--text-muted);
+}
+
+.inline-select-field {
+  width: min(240px, 100%);
+}
+
+.composer-textarea-wrap {
+  position: relative;
+  display: grid;
+  gap: 12px;
+}
+
+.drop-textarea-wrap {
+  padding: 16px;
+  border: var(--border-thick);
+  border-radius: var(--radius-lg);
+  background: var(--paper-bg-3);
+  box-shadow: inset 3px 3px 8px rgba(0,0,0,0.05);
+}
+
+.composer-upload-icon-btn {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  border: var(--border-outline);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-light);
+  padding: 12px 20px;
+  cursor: pointer;
+  box-shadow: var(--shadow-btn);
+  font-weight: 800;
+  color: var(--text-dark);
+  transition: all 0.2s var(--bounce-timing);
+}
+
+.composer-upload-icon-btn:hover {
+  transform: translateY(-2px) rotate(2deg);
+  box-shadow: var(--shadow-btn-hover);
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary-dark);
+}
+
+.composer-upload-icon-btn input {
+  display: none;
+}
+
+.composer-upload-icon-btn.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.support-input-field.grow-field {
+  flex: 1 1 280px;
+}
+
+.compact-preview,
+.note-preview-card,
+.file-preview-media {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.compact-preview img,
+.note-preview-card img {
+  display: block;
+  width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: var(--border-thick);
+}
+
+.pdf-preview iframe {
+  width: 100%;
+  min-height: 480px;
+  border: var(--border-thick);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.file-preview-link {
+  display: grid;
+  gap: 8px;
+}
+
+.file-preview-link a {
+  color: var(--color-secondary-dark);
+  text-decoration: underline;
+  font-weight: 800;
+}
+
+.search-item p,
+.note-node-card p,
+.detail-box p,
+.review-item p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.note-list-pane {
+  gap: 16px;
+}
+
+.note-title-btn {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.note-detail-page-head,
+.note-detail-head,
+.note-raw-box-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.note-detail-head > div {
+  display: grid;
+  gap: 8px;
+}
+
+.note-raw-box pre,
+.markdown-answer-box pre,
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 20px;
+  border-radius: var(--radius-md);
+  background: #2b2d42;
+  color: #edf2f4;
+  border: 4px solid var(--text-base);
+  overflow: auto;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.markdown-answer-box,
+.markdown-answer-box h1,
+.markdown-answer-box h2,
+.markdown-answer-box h3,
+.markdown-answer-box p,
+.markdown-answer-box ul,
+.markdown-answer-box ol {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.markdown-answer-box h1, .markdown-answer-box h2, .markdown-answer-box h3 {
+  color: var(--color-primary-dark);
+  padding-bottom: 8px;
+  border-bottom: 2px dashed var(--color-primary-light);
+  margin-bottom: 16px;
+  margin-top: 24px;
+}
+.markdown-answer-box h1:first-child { margin-top: 0; }
+
+.markdown-answer-box p, .markdown-answer-box li {
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+.markdown-answer-box li {
+  margin-bottom: 8px;
+}
+
+.error-text,
+.success-text {
+  font-weight: 800;
+  padding: 12px;
+  border-radius: var(--radius-md);
+}
+.error-text {
+  background: var(--color-danger);
+  color: var(--color-danger-dark);
+  border: 2px dashed var(--color-danger-dark);
+}
+.success-text {
+  background: var(--color-accent);
+  color: var(--color-accent-dark);
+  border: 2px dashed var(--color-accent-dark);
+}
+
+.empty-card {
+  place-items: center;
+  min-height: 160px;
+  text-align: center;
+  font-size: 18px;
+  color: var(--text-muted);
+  border: 4px dashed #cbd5e1;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hero-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hero-stats div {
+  padding: 16px;
+  text-align: center;
+}
+
+.search-action-wrap {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+}
+
+.fade-page {
+  animation: none;
+}
+
+/* Scrollbar styling for that extra polish */
+::-webkit-scrollbar {
+  width: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+  border-left: 2px dashed #d1d5db;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 10px;
+  border: 3px solid var(--bg-color);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-dark);
+}
+
+@media (max-width: 980px) {
+  .student-layer-shell {
+    width: min(100% - 24px, 1180px);
+  }
+
+  .workspace-topbar {
+    flex-direction: column;
+  }
+
+  .dual-grid,
+  .hero-stats,
+  .runtime-config-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .student-layer-shell {
+    width: 100%;
+    padding: 12px 12px 32px 12px;
+  }
+
+  /* Make sticker cards fit better on narrow screens */
+  .auth-card,
+  .workspace-card,
+  .composer-card,
+  .detail-box,
+  .note-preview-card,
+  .file-preview-media,
+  .notes-search-panel,
+  .note-node-card,
+  .note-raw-box,
+  .log-box,
+  .runtime-config-card,
+  .monitor-card,
+  .metric,
+  .profile-card,
+  .review-item,
+  .inline-error-box,
+  .editable-tag-item,
+  .empty-card {
+    padding: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .auth-card {
+    padding: 24px 16px;
+  }
+
+  .workspace-topbar {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .notes-search-trigger-row,
+  .result-actions,
+  .tag-add-row,
+  .action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .workspace-tabs {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    margin-bottom: 16px;
+  }
+
+  .workspace-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px 4px;
+    font-size: 14px;
+    text-align: center;
+    white-space: nowrap;
+    min-width: 80px; 
+  }
+
+  .primary-btn,
+  .danger-btn,
+  .ghost-btn,
+  .composer-upload-icon-btn,
+  .note-title-btn,
+  .search-item.search-result-btn,
+  .related-note-list .search-result-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .editable-tag-item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Typography downscaling */
+  .section-head h2,
+  .section-head h3,
+  .note-detail-head strong,
+  .search-item strong,
+  .note-title-btn,
+  .note-raw-box-head strong {
+    font-size: 18px;
+  }
+
+  .workspace-topbar-user {
+    font-size: 18px;
+  }
+
+  .topbar-metric strong {
+    font-size: 16px;
+  }
+}
+

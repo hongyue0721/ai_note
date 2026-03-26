@@ -1,210 +1,55 @@
-# StarGraph AI
+# StarGraph AI（星图智学）
 
-StarGraph AI（星图智学）是一个面向学生错题整理、笔记沉淀、知识点关联与 AI 辅助解析的演示型学习系统。它的产品目标来自 `D:\vibe_coding\smartnote` 中的 MVP 方案：用户上传题目或笔记后，系统完成文件落库、内容解析、知识点提取、人工审核、搜索检索与轻量图谱展示；当本地资料未命中时，再由 AI 返回参考解析。
+StarGraph AI 是一个面向学习笔记、题目解析与后台运维管理的全栈项目。当前仓库已经包含可运行的 student 用户端、admin 管理端、FastAPI backend、parse-job worker、PostgreSQL 持久化，以及基于 OpenAI 兼容网关的分类与解题能力。
 
-当前这个 `stargraph-ai` 目录不是纯方案仓，而是已经落成的可运行副本：包含 FastAPI 后端、轮询式 worker、学生端与管理端前端、Docker Compose 编排，以及 E2E 测试资产。
+## 文档入口
 
----
+- `docs/01_system-overview.md`：系统功能、模块职责、数据流说明
+- `docs/02_api-spec.md`：当前后端接口规范
+- `docs/03_deployment-and-operations.md`：本地与 Docker Compose 部署、运行和运维说明
+- `docs/04_tech-stack.md`：技术栈、依赖与架构选型说明
 
-## 1. 项目在做什么
+## 当前系统组成
 
-核心场景只有一条主链路：
+- **backend**：FastAPI 服务，提供用户/管理员鉴权、文件上传、预览分类、ingestion、parse jobs、review、notes、problems、search、graph、solve、dashboard、runtime config 等接口
+- **worker**：轮询 pending parse jobs，调用 backend 服务逻辑完成分类/解析，并同步实体 `parse_status`
+- **student frontend**：用户通过 `space_key` 进入空间，完成上传笔记、询问问题、笔记管理、搜索、详情查看、标签编辑、下载原文件等操作
+- **admin frontend**：管理员登录后查看数据管理页与管理设置页，处理运行时模型配置与管理员登录信息修改
+- **postgres**：项目主数据库，持久化用户、管理员、文件、笔记、题目、parse jobs、review tasks、运行时模型配置等数据
 
-1. 用户注册 / 登录 / 进入自己的空间
-2. 上传图片、PDF、文本等学习材料
-3. 后端创建 ingestion 与 parse job
-4. worker 或预览接口调用模型做分类、抽取和标签建议
-5. 笔记与错题以知识点标签建立可检索关系
-6. 学生端查看内容、搜索内容、看知识点概览与薄弱点
-7. 管理端查看运行状态、解析任务、运行时模型配置
+## 核心能力
 
-这与 `smartnote` 里的首月 MVP 原理一致：
+- 用户通过 `/v1/auth/space-enter` 进入专属空间并获得 JWT
+- 管理员通过 `/v1/admin/auth/login` 登录，并可修改用户名/密码
+- 文件上传采用 `upload-policy -> upload-local -> confirm` 三段式链路
+- 上传文件可先走 `/v1/preview/upload-tags` 做预览分类，再确认入库
+- `note` / `problem` 实体支持入库、查询、编辑、删除与 parse status 跟踪
+- worker 处理 parse jobs，并驱动搜索、图谱概览、弱项标签等能力的数据来源
+- `/v1/solve` 提供 AI-only 解题结果，student 端支持 Markdown 渲染与“加入笔记”
+- admin 端支持运行时文本模型 / 视觉模型配置
 
-- 不先做重型微服务
-- 不先上真正图数据库
-- 先把“上传 → 解析 → 标签 → 关联 → 搜索 → 展示”跑通
-- AI 负责提取和建议，不直接充当最终事实来源
-
----
-
-## 2. 仓库结构
+## 目录结构
 
 ```text
-stargraph-ai/
+note/
   apps/
-    backend/              # FastAPI API、数据库模型、服务逻辑
-    worker/               # 解析任务轮询 worker
+    backend/
     frontend/
-      student/            # 学生端 Vue 3 + Vite
-      admin/              # 管理端 Vue 3 + Vite
-  infra/                  # Dockerfile / systemd 等部署资产
-  libs/                   # 预留共享库目录
-  scripts/                # smoke / regression 脚本
-  tests/                  # Playwright E2E
-  .env.example
+      admin/
+      student/
+    worker/
+  docs/
+  infra/
+  tests/
+  scripts/
   docker-compose.yml
-  package.json
-  playwright.config.ts
 ```
 
----
-
-## 3. 技术栈
-
-### 后端
-
-- Python 3.11
-- FastAPI
-- Pydantic v2 / pydantic-settings
-- SQLAlchemy 2
-- Alembic（依赖已存在）
-- PostgreSQL 16
-- python-jose + passlib（JWT 与密码哈希）
-- httpx / OpenAI SDK / pypdf
-
-后端依赖来源：`apps/backend/requirements.txt`
-
-### 前端
-
-- Vue 3
-- TypeScript
-- Vite
-
-前端包定义：
-
-- `apps/frontend/student/package.json`
-- `apps/frontend/admin/package.json`
-
-### 运行与部署
-
-- Docker Compose
-- Nginx 静态托管前端
-- 本地文件存储目录 `data/uploads`
-- PostgreSQL 作为主业务库
-
-### 测试
-
-- Playwright E2E
-- Python smoke / regression 脚本
-
----
-
-## 4. 系统原理
-
-### 4.1 总体架构
-
-项目遵循 `smartnote` 中“逻辑分层、统一部署、接口先行”的实现思路：
-
-```text
-Student/Admin Frontend
-        |
-        v
-     FastAPI API
-        |
-        +--> PostgreSQL
-        +--> Local Upload Storage
-        +--> Runtime Model Config
-        +--> Parse Job Table
-                 |
-                 v
-               Worker
-                 |
-                 v
-            LLM classify / solve
-```
-
-### 4.2 为什么这样设计
-
-- **先关系库，后图数据库**：当前图谱接口本质是根据解析结果中的 `knowledge_candidates` 聚合权重，而不是维护独立图数据库。
-- **先任务表，后消息队列**：解析异步链路通过 `ParseJob` 表 + worker 轮询实现，符合 `smartnote` 中“数据库任务表 + 独立 worker”的 MVP 建议。
-- **AI 只做建议层**：分类、标签提取、解题结果来自模型，但审核、替换标签、运行时模型配置都保留人工或后台控制入口。
-- **统一返回格式**：接口基本采用 `{ code, message, data }` 返回结构，这与 `smartnote/12_API接口契约草案.md` 的约定一致。
-
-### 4.3 主要业务链路
-
-#### 上传与入库
-
-1. `POST /v1/files/upload-policy` 申请文件记录与对象键
-2. `POST /v1/files/upload-local` 实际写入本地文件
-3. `POST /v1/files/confirm` 确认文件元数据
-4. `POST /v1/ingestions` 创建 note / problem 与 parse job
-
-#### 预览与确认
-
-1. `POST /v1/preview/upload-tags` 对文本 / PDF / 图片做预分类
-2. 前端拿到标题、学科、标签候选、摘要
-3. `POST /v1/notes/confirm` 将预览结果直接确认成笔记
-
-#### 解析与审核
-
-1. ingestion 创建 `ParseJob`
-2. worker / 服务逻辑补充 `result_json`
-3. 管理端查看 `/v1/admin/parse-jobs`
-4. 审核端通过 `/v1/review/tasks/{task_id}/decision` 批准、拒绝或替换标签
-
-#### 搜索、图谱与解题
-
-- `/v1/search` 跨笔记和错题检索
-- `/v1/graph/overview` 聚合知识点权重
-- `/v1/graph/weak-tags` 基于低置信度聚合薄弱点
-- `/v1/solve` 在当前实现中直接走 AI-only 解题链路
-
----
-
-## 5. 运行中的服务
-
-`docker-compose.yml` 当前启动这些服务：
-
-- `postgres`
-- `backend`
-- `worker`
-- `student-frontend`
-- `admin-frontend`
-
-默认端口：
-
-- Student frontend: `http://localhost:3000`
-- Admin frontend: `http://localhost:3001`
-- Backend API: `http://localhost:8000`
-- Health API: `http://localhost:8000/healthz`
-
----
-
-## 6. 快速开始
-
-### 6.1 准备环境变量
-
-```bash
-cp .env.example .env
-```
-
-Windows PowerShell：
-
-```powershell
-Copy-Item .env.example .env
-```
-
-### 6.2 必看配置
-
-- `JWT_SECRET`
-- `ADMIN_JWT_SECRET`
-- `POSTGRES_DB`
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `DATABASE_URL`
-- `STORAGE_PROVIDER`
-- `UPLOADS_ROOT_DIR`
-- `GEMINI_API_KEY` / `OPENAI_API_KEY`
-- `SEED_ADMIN_USERNAME`
-- `SEED_ADMIN_PASSWORD`
-
-### 6.3 一键启动
+## 快速启动
 
 ```bash
 docker compose up -d --build
 ```
-
-### 6.4 查看状态
 
 ```bash
 docker compose ps
@@ -821,3 +666,12 @@ docker compose logs -f admin-frontend
 - `D:\vibe_coding\smartnote\12_API接口契约草案.md`
 - `apps/backend/app/api/router.py`
 - `apps/backend/app/api/routes/`
+=======
+默认端口：
+
+- `8000` backend
+- `3000` student frontend
+- `3001` admin frontend
+
+PostgreSQL 仅在容器内部网络使用，不再对宿主机公网开放。
+>>>>>>> fix/worker-db-retry

@@ -1,0 +1,69 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: stargraph-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-stargraph}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: infra/docker/backend.Dockerfile
+    container_name: stargraph-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-stargraph}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    volumes:
+      - ./data/uploads:/app/data/uploads
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/worker.Dockerfile
+    container_name: stargraph-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-stargraph}
+    depends_on:
+      - postgres
+    volumes:
+      - ./data/uploads:/app/data/uploads
+
+  student-frontend:
+    build:
+      context: .
+      dockerfile: infra/docker/frontend-student.Dockerfile
+    container_name: stargraph-student-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  admin-frontend:
+    build:
+      context: .
+      dockerfile: infra/docker/frontend-admin.Dockerfile
+    container_name: stargraph-admin-frontend
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+    name: ${POSTGRES_VOLUME_NAME:-note_postgres_data}
