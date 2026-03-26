@@ -1,7 +1,9 @@
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlparse
 
 from pydantic import Field
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,8 +16,12 @@ class Settings(BaseSettings):
     app_env: str = Field(default="development", alias="APP_ENV")
     app_host: str = Field(default="0.0.0.0", alias="APP_HOST")
     app_port: int = Field(default=8000, alias="APP_PORT")
-    jwt_secret: str = Field(default="change-me", alias="JWT_SECRET")
-    admin_jwt_secret: str = Field(default="change-admin-me", alias="ADMIN_JWT_SECRET")
+    jwt_secret: str = Field(
+        default="replace-with-long-random-jwt-secret", alias="JWT_SECRET"
+    )
+    admin_jwt_secret: str = Field(
+        default="replace-with-long-random-admin-jwt-secret", alias="ADMIN_JWT_SECRET"
+    )
     cors_origins: str = Field(
         default="http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:3001,http://146.190.84.189:3000,http://146.190.84.189:3001",
         alias="CORS_ORIGINS",
@@ -44,10 +50,54 @@ class Settings(BaseSettings):
     openai_timeout_seconds: int = Field(default=60, alias="OPENAI_TIMEOUT_SECONDS")
     backend_log_level: str = Field(default="INFO", alias="BACKEND_LOG_LEVEL")
     seed_admin_username: str = Field(default="admin", alias="SEED_ADMIN_USERNAME")
-    seed_admin_password: str = Field(default="admin123456", alias="SEED_ADMIN_PASSWORD")
+    seed_admin_password: str = Field(
+        default="replace-with-strong-admin-password", alias="SEED_ADMIN_PASSWORD"
+    )
     seed_admin_display_name: str = Field(
         default="System Admin", alias="SEED_ADMIN_DISPLAY_NAME"
     )
+
+    @model_validator(mode="after")
+    def validate_production_security(self) -> "Settings":
+        if self.app_env.lower() != "production":
+            return self
+
+        placeholder_values = {
+            "change-me",
+            "change-admin-me",
+            "replace-with-long-random-jwt-secret",
+            "replace-with-long-random-admin-jwt-secret",
+            "replace-with-strong-admin-password",
+            "admin123456",
+        }
+
+        if self.jwt_secret in placeholder_values or len(self.jwt_secret) < 32:
+            raise ValueError(
+                "JWT_SECRET must be a strong non-default value in production"
+            )
+        if (
+            self.admin_jwt_secret in placeholder_values
+            or len(self.admin_jwt_secret) < 32
+            or self.admin_jwt_secret == self.jwt_secret
+        ):
+            raise ValueError(
+                "ADMIN_JWT_SECRET must be a strong non-default value distinct from JWT_SECRET in production"
+            )
+        if (
+            self.seed_admin_password in placeholder_values
+            or len(self.seed_admin_password) < 16
+        ):
+            raise ValueError(
+                "SEED_ADMIN_PASSWORD must be a strong non-default value in production"
+            )
+
+        parsed_database_url = urlparse(self.database_url)
+        if parsed_database_url.password == "postgres":
+            raise ValueError(
+                "DATABASE_URL must not use the default postgres password in production"
+            )
+
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:
